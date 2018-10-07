@@ -133,14 +133,14 @@ class AuthomaticView(BrowserView):
                     'authomatic_{0}'.format(key),
                     self.request.form[key],
                     http_only=True,
-                    path='/'.join(api.portal.get().getPhysicalPath()))
+                    path=api.portal.get().absolute_url_path())
                 del(self.request.form[key])
             # TODO: expire cookie(s) after successful login, not here.
             elif self.request.cookies.get('authomatic_{0}'.format(key)):
                 additional_params[key] = self.request.cookies.get('authomatic_{0}'.format(key))
                 self.request.response.expireCookie(
                     'authomatic_{0}'.format(key),
-                    path='/'.join(api.portal.get().getPhysicalPath()))
+                    path=api.portal.get().absolute_url_path())
         result = auth.login(
             ZopeRequestAdapter(self),
             self.provider
