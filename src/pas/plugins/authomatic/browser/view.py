@@ -102,7 +102,9 @@ class AuthomaticView(BrowserView):
                 "{0}/authomatic-handler/{1}{2}".format(
                     root.absolute_url(),
                     getattr(self, 'provider', ''),
-                    '?' + self.request.QUERY_STRING if self.request.QUERY_STRING else ''
+                    ('?' + self.request.QUERY_STRING
+                        if self.request.QUERY_STRING
+                        else '')
                 )
             )
             return "redirecting"
@@ -137,7 +139,8 @@ class AuthomaticView(BrowserView):
                 del(self.request.form[key])
             # TODO: expire cookie(s) after successful login, not here.
             elif self.request.cookies.get('authomatic_{0}'.format(key)):
-                additional_params[key] = self.request.cookies.get('authomatic_{0}'.format(key))
+                additional_params[key] = self.request.cookies.get(
+                    'authomatic_{0}'.format(key))
                 self.request.response.expireCookie(
                     'authomatic_{0}'.format(key),
                     path=api.portal.get().absolute_url_path())
@@ -165,11 +168,14 @@ class AuthomaticView(BrowserView):
             self._remember_identity(result, provider_name)
             if additional_params:
                 self.request.response.redirect(
-                    "{0}/logged_in?{1}".format(self.context.absolute_url(), urlencode(additional_params))
+                    "{0}/logged_in?{1}".format(
+                        self.context.absolute_url(),
+                        urlencode(additional_params))
                 )
             else:
                 self.request.response.redirect(
-                    "{0}/login_success".format(self.context.absolute_url())
+                    "{0}/login_success".format(
+                        self.context.absolute_url())
                 )
         return "redirecting"
 
