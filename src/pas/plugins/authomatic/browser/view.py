@@ -10,6 +10,7 @@ from plone.protect.interfaces import IDisableCSRFProtection
 from Products.CMFCore.interfaces import ISiteRoot
 from Products.Five.browser import BrowserView
 from Products.Five.browser.pagetemplatefile import ViewPageTemplateFile
+from urllib import urlencode
 from zope.interface import alsoProvides
 from zope.interface import implementer
 from zope.publisher.interfaces import IPublishTraverse
@@ -98,9 +99,10 @@ class AuthomaticView(BrowserView):
             # so bevor going on redirect
             root = api.portal.get_navigation_root(self.context)
             self.request.response.redirect(
-                "{0}/authomatic-handler/{1}".format(
+                "{0}/authomatic-handler/{1}{2}".format(
                     root.absolute_url(),
-                    getattr(self, 'provider', '')
+                    getattr(self, 'provider', ''),
+                    '?' + self.request.QUERY_STRING if self.request.QUERY_STRING else ''
                 )
             )
             return "redirecting"
@@ -121,13 +123,30 @@ class AuthomaticView(BrowserView):
             cfg,
             secret=authomatic_settings().secret.encode('utf8')
         )
+        additional_params = {}
+        for key in ('came_from', 'next'):
+            if key in self.request.form:
+                additional_params[key] = self.request.form[key]
+                # TODO: expire after 1800s (30m)
+                # TODO: single cookie for next and came_from ?
+                self.request.response.setCookie(
+                    'authomatic_{0}'.format(key),
+                    self.request.form[key],
+                    http_only=True,
+                    path='/'.join(api.portal.get().getPhysicalPath()))
+                del(self.request.form[key])
+            # TODO: expire cookie(s) after successful login, not here.
+            elif self.request.cookies.get('authomatic_{0}'.format(key)):
+                additional_params[key] = self.request.cookies.get('authomatic_{0}'.format(key))
+                self.request.response.expireCookie(
+                    'authomatic_{0}'.format(key),
+                    path='/'.join(api.portal.get().getPhysicalPath()))
         result = auth.login(
             ZopeRequestAdapter(self),
             self.provider
         )
         if not result:
             logger.info('return from view')
-            # let authomatic do its work
             return
         if result.error:
             return result.error.message
@@ -135,16 +154,23 @@ class AuthomaticView(BrowserView):
         provider_name = display.get('title', self.provider)
         if not self.is_anon:
             # now we delegate to PAS plugin to add the identity
+            logger.info('add_identity %s', additional_params)
             self._add_identity(result, provider_name)
             self.request.response.redirect(
-                "{0}".format(self.context.absolute_url())
+                additional_params.get('came_from', self.context.absolute_url())
             )
         else:
             # now we delegate to PAS plugin in order to login
+            logger.info('remember_identity %s', additional_params)
             self._remember_identity(result, provider_name)
-            self.request.response.redirect(
-                "{0}/login_success".format(self.context.absolute_url())
-            )
+            if additional_params:
+                self.request.response.redirect(
+                    "{0}/logged_in?{1}".format(self.context.absolute_url(), urlencode(additional_params))
+                )
+            else:
+                self.request.response.redirect(
+                    "{0}/login_success".format(self.context.absolute_url())
+                )
         return "redirecting"
 
     @property

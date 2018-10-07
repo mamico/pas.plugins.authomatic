@@ -16,29 +16,34 @@
         <ul>
             <li tal:repeat="provider view/providers">
 
-                <a tal:condition="not:provider/as_form"
-                   tal:attributes="class string:${provider/buttonclasses};
-                                   href string:${context/absolute_url}/@@authomatic-handler/${provider/identifier}">
-                    <span tal:attributes="class string:${provider/iconclasses}"></span>
-                    <span tal:content="provider/title">
-                        name of oauth provider
-                    </span>
-                </a>
-
-                <form tal:condition="provider/as_form"
-                      tal:attributes="action string:${context/absolute_url}/@@authomatic-handler/${provider/identifier};"
+                <form tal:attributes="action string:${context/absolute_url}/@@authomatic-handler/${provider/identifier};"
                       class="authomatic-handler-form">
+		    <input
+		        type="hidden"
+			name="came_from"
+			tal:define="came_from request/form/came_from|nothing"
+			tal:condition="came_from"
+			tal:attributes="value came_from"
+		    />
+		    <input
+		        type="hidden"
+			name="next"
+			tal:define="next request/form/next|nothing"
+			tal:condition="next"
+			tal:attributes="value next"
+		    />
                     <input
                         type="text"
                         placeholder="Your claimed ID"
                         name="id"
+                        tal:condition="provider/as_form"
                         tal:attributes="class string:${provider/iconclasses}"
                     />
                     <input
                         type="submit"
                         value="Authenticate"
                         tal:attributes="class string:${provider/buttonclasses};
-                                        value: provider/title"
+                                        value provider/title"
                     />
                 </form>
 

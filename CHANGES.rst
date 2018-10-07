@@ -4,6 +4,9 @@ Changelog
 1.0b2 (unreleased)
 ------------------
 
+- came_from/next implementation.
+  [mamico]
+
 - PAS event notification IPrincipalCreatedEvent.
   [jensens]
 
